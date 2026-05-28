@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   TrendingUp, 
   Wallet, 
@@ -69,7 +69,7 @@ export default function PortfolioDashboard({ address }: PortfolioDashboardProps)
   const [claimingId, setClaimingId] = useState<string | null>(null)
   const [claimMessage, setClaimMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const fetchStakes = async () => {
+  const fetchStakes = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch(`/api/users/${address}/stakes`)
@@ -82,13 +82,13 @@ export default function PortfolioDashboard({ address }: PortfolioDashboardProps)
     } finally {
       setLoading(false)
     }
-  }
+  }, [address])
 
   useEffect(() => {
     if (address) {
       fetchStakes()
     }
-  }, [address])
+  }, [address, fetchStakes])
 
   const handleClaim = async (stakeId: string) => {
     try {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useWalletContext } from '@/components/WalletContext'
 import ProfileHeader from '@/components/ProfileHeader'
 import PortfolioDashboard from '@/components/PortfolioDashboard'
@@ -20,7 +20,7 @@ export default function StakesPage() {
 
   const isOwnProfile = !!publicKey && publicKey === address
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch(`/api/users/${address}`)
@@ -32,13 +32,13 @@ export default function StakesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [address])
 
   useEffect(() => {
     if (address) {
       fetchProfile()
     }
-  }, [address])
+  }, [address, fetchProfile])
 
   const handleFollow = async () => {
     try {

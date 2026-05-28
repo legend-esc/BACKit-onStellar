@@ -11,6 +11,7 @@ import PriceChart from "./PriceChart";
 import { CallDetailData } from "@/types";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useWalletContext } from "./WalletContext";
+import ClaimPayout from "./ClaimPayout";
 
 interface UserPosition {
   stake: number;
