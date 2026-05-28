@@ -1,0 +1,69 @@
+name: Soroban Contracts CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-and-build:
+    name: Test & Build Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+
+      - name: Cache Cargo & Rust Build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/contracts/target
+          key: ${{ runner.os }}-cargo-contracts-${{ hashFiles('packages/contracts/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-contracts-
+
+      - name: Run Cargo Test
+        run: |
+          cd packages/contracts
+          cargo test
+
+      - name: Install Stellar CLI
+        run: |
+          curl -sSL -o stellar-cli.tar.gz https://github.com/stellar/stellar-cli/releases/latest/download/stellar-cli-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf stellar-cli.tar.gz
+          # The tarball contains a single 'stellar' executable.
+          sudo mv stellar /usr/local/bin/
+          stellar --version
+
+      - name: Build Contracts with Stellar CLI
+        run: |
+          cd packages/contracts
+          stellar contract build
+
+      - name: Report Contract Sizes
+        run: |
+          echo "### Compiled Soroban WASM Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract WASM | Size (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          for f in packages/contracts/target/wasm32-unknown-unknown/release/*.wasm; do
+            sz=$(du -h "$f" | cut -f1)
+            name=$(basename "$f")
+            echo "| $name | $sz |" >> $GITHUB_STEP_SUMMARY
+            echo "WASM: $name Size: $sz"
+          done
+
+      - name: Upload WASM Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: soroban-contracts-wasm
+          path: packages/contracts/target/wasm32-unknown-unknown/release/*.wasm
+          retention-days: 7
