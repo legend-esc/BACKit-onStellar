@@ -72,7 +72,7 @@ impl CallRegistry {
             fee_bps: 0,
             max_stake_per_user: 0,
             whitelisted_tokens: Map::new(&env),
-            min_stake: 1_000_000,
+            min_stake,
             metadata_version: 0,
         };
 
