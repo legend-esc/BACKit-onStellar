@@ -1,5 +1,6 @@
 use soroban_sdk::{Address, Bytes, Env, Symbol};
 
+pub const PARAM_MAX_STAKE_PER_USER: &str = "max_stake_per_user";
 // ── Existing events (unchanged) ───────────────────────────────────────────────
 
 /// Emitted when a new call is created
@@ -107,5 +108,23 @@ pub fn emit_call_cancelled(env: &Env, call_id: u64, creator: &Address, refunded_
     env.events().publish(
         ("call_registry", "call_cancelled"),
         (call_id, creator.clone(), refunded_amount),
+    );
+}
+
+pub fn emit_admin_params_changed_i128(
+    env: &Env,
+    param: &str,
+    changed_by: &Address,
+    old_value: i128,
+    new_value: i128,
+) {
+    env.events().publish(
+        ("call_registry", "admin_params_changed"),
+        (
+            Symbol::new(env, param),
+            changed_by.clone(),
+            old_value,
+            new_value,
+        ),
     );
 }

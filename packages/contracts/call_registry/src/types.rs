@@ -92,6 +92,9 @@ pub struct ContractConfig {
     pub outcome_manager: Address,
     /// Protocol fee in basis points (e.g. 100 = 1%). Default: 0.
     pub fee_bps: u32,
+    /// Maximum stake any single user may place per call per position.
+    /// `0` means unlimited.
+    pub max_stake_per_user: i128,
 }
 
 /// Statistics for a call
