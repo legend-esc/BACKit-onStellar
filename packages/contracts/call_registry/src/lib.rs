@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, token, Address, Bytes, Env, Map, Vec};
+use soroban_sdk::{contract, contractimpl, token, Address, Bytes, BytesN, Env, Map, Symbol, Vec};
 
 mod admin;
 mod errors;
@@ -18,6 +18,7 @@ use storage::*;
 use types::*;
 
 const MAX_CALL_PAGE_SIZE: u32 = 20;
+pub const CONTRACT_VERSION: u32 = 1;
 
 /// CallRegistry contract implementation.
 /// Manages prediction calls and staking on market outcomes.
@@ -74,9 +75,13 @@ impl CallRegistry {
             whitelisted_tokens: Map::new(&env),
             min_stake,
             metadata_version: 0,
+            paused: false,
         };
 
         set_config(&env, &config);
+        env.storage()
+            .instance()
+            .set(&Symbol::new(&env, "version"), &CONTRACT_VERSION);
         extend_storage_ttl(&env);
 
         env.events()
@@ -103,6 +108,7 @@ impl CallRegistry {
         creator.require_auth();
 
         let config = get_config(&env).ok_or(CallRegistryError::NotInitialized)?;
+        assert!(!config.paused, "Contract is paused");
         if stake_amount < config.min_stake || stake_amount <= 0 {
             return Err(CallRegistryError::InvalidStakeAmount);
         }
@@ -133,8 +139,6 @@ impl CallRegistry {
             ipfs_cid: ipfs_cid.clone(),
             total_up_stake: 0,
             total_down_stake: 0,
-            up_stakes: soroban_sdk::Map::new(&env),
-            down_stakes: soroban_sdk::Map::new(&env),
             outcome: 0,
             start_price: 0,
             end_price: 0,
@@ -259,6 +263,7 @@ impl CallRegistry {
         }
 
         let config = get_config(&env).expect("not initialized");
+        assert!(!config.paused, "Contract is paused");
         if amount < config.min_stake {
             panic!("stake below minimum");
         }
@@ -283,14 +288,9 @@ impl CallRegistry {
 
         // Per-user stake cap
         let config = get_config(&env).expect("Contract not initialized");
-        if config.max_stake_per_user > 0 {
-            let existing = match stake_position {
-                StakePosition::Up => call.up_stakes.get(staker.clone()).unwrap_or(0),
-                StakePosition::Down => call.down_stakes.get(staker.clone()).unwrap_or(0),
-            };
-            if existing + amount > config.max_stake_per_user {
-                panic!("Stake exceeds max_stake_per_user cap");
-            }
+        let current_stake = get_user_stake(&env, call_id, &staker, position);
+        if config.max_stake_per_user > 0 && current_stake + amount > config.max_stake_per_user {
+            panic!("Stake exceeds max_stake_per_user cap");
         }
 
         let token_client = token::Client::new(&env, &call.stake_token);
@@ -298,15 +298,21 @@ impl CallRegistry {
 
         match stake_position {
             StakePosition::Up => {
-                let current_stake = call.up_stakes.get(staker.clone()).unwrap_or(0);
-                call.up_stakes.set(staker.clone(), current_stake + amount);
-                call.total_up_stake += amount;
+            let new_stake = current_stake + amount;
+            if current_stake == 0 {
+                set_up_staker_count(&env, call_id, get_up_staker_count(&env, call_id) + 1);
             }
-            StakePosition::Down => {
-                let current_stake = call.down_stakes.get(staker.clone()).unwrap_or(0);
-                call.down_stakes.set(staker.clone(), current_stake + amount);
-                call.total_down_stake += amount;
+            set_user_stake(&env, call_id, &staker, position, new_stake);
+            call.total_up_stake += amount;
+        }
+        StakePosition::Down => {
+            let new_stake = current_stake + amount;
+            if current_stake == 0 {
+                set_down_staker_count(&env, call_id, get_down_staker_count(&env, call_id) + 1);
             }
+            set_user_stake(&env, call_id, &staker, position, new_stake);
+            call.total_down_stake += amount;
+        }
         }
 
         set_call(&env, &call);
@@ -329,6 +335,16 @@ impl CallRegistry {
         admin::set_min_stake(env, new_min_stake);
     }
 
+    /// Pause the contract (admin only).
+    pub fn pause(env: Env) {
+        admin::pause(env);
+    }
+
+    /// Unpause the contract (admin only).
+    pub fn unpause(env: Env) {
+        admin::unpause(env);
+    }
+
     /// Resolve a call with an outcome (outcome_manager only).
     /// # Errors
     /// * [`CallRegistryError::NotInitialized`] – contract not initialised.
@@ -342,6 +358,7 @@ impl CallRegistry {
         end_price: i128,
     ) -> Result<Call, CallRegistryError> {
         let config = get_config(&env).ok_or(CallRegistryError::NotInitialized)?;
+        assert!(!config.paused, "Contract is paused");
         config.outcome_manager.require_auth();
 
         let mut call = get_call(&env, call_id).ok_or(CallRegistryError::CallNotFound)?;
@@ -556,13 +573,15 @@ impl CallRegistry {
     /// * [`CallRegistryError::CallNotFound`] – `call_id` does not exist.
     pub fn get_call_stats(env: Env, call_id: u64) -> Result<CallStats, CallRegistryError> {
         let call = get_call(&env, call_id).ok_or(CallRegistryError::CallNotFound)?;
+        let up_stake_count = get_up_staker_count(&env, call_id);
+        let down_stake_count = get_down_staker_count(&env, call_id);
 
         Ok(CallStats {
             total_up_stake: call.total_up_stake,
             total_down_stake: call.total_down_stake,
-            total_stakes: call.up_stakes.len() + call.down_stakes.len(),
-            up_stake_count: call.up_stakes.len(),
-            down_stake_count: call.down_stakes.len(),
+            total_stakes: up_stake_count + down_stake_count,
+            up_stake_count,
+            down_stake_count,
         })
     }
 
@@ -595,11 +614,12 @@ impl CallRegistry {
         staker: Address,
         position: u32,
     ) -> Result<i128, CallRegistryError> {
-        let call = get_call(&env, call_id).ok_or(CallRegistryError::CallNotFound)?;
+        // Just to verify call exists
+        get_call(&env, call_id).ok_or(CallRegistryError::CallNotFound)?;
 
         match position {
-            OUTCOME_UP => Ok(call.up_stakes.get(staker).unwrap_or(0)),
-            OUTCOME_DOWN => Ok(call.down_stakes.get(staker).unwrap_or(0)),
+            OUTCOME_UP => Ok(get_user_stake(&env, call_id, &staker, position)),
+            OUTCOME_DOWN => Ok(get_user_stake(&env, call_id, &staker, position)),
             _ => Err(CallRegistryError::InvalidPosition),
         }
     }
@@ -612,5 +632,39 @@ impl CallRegistry {
     /// Get contract-wide aggregated statistics.
     pub fn get_global_stats(env: Env) -> GlobalStats {
         storage::get_global_stats(&env)
+    }
+
+    /// Return the current contract version.
+    pub fn version(env: Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&Symbol::new(&env, "version"))
+            .unwrap_or(CONTRACT_VERSION)
+    }
+
+    /// Upgrade the contract WASM to a new hash (admin only).
+    ///
+    /// # Errors
+    /// * [`CallRegistryError::NotInitialized`] -- contract not initialised.
+    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), CallRegistryError> {
+        let config = get_config(&env).ok_or(CallRegistryError::NotInitialized)?;
+        config.admin.require_auth();
+
+        let old_version: u32 = env
+            .storage()
+            .instance()
+            .get(&Symbol::new(&env, "version"))
+            .unwrap_or(CONTRACT_VERSION);
+        let new_version = old_version + 1;
+
+        env.deployer().update_current_contract_wasm(new_wasm_hash);
+
+        env.storage()
+            .instance()
+            .set(&Symbol::new(&env, "version"), &new_version);
+
+        emit_contract_upgraded(&env, old_version, new_version, &config.admin);
+
+        Ok(())
     }
 }

@@ -139,6 +139,18 @@ pub fn emit_token_delisted(env: &Env, token: &Address) {
         .publish(("call_registry", "token_delisted"), token.clone());
 }
 
+/// Emitted when the admin pauses the contract.
+pub fn emit_contract_paused(env: &Env, admin: &Address) {
+    env.events()
+        .publish(("call_registry", "contract_paused"), admin.clone());
+}
+
+/// Emitted when the admin unpauses the contract.
+pub fn emit_contract_unpaused(env: &Env, admin: &Address) {
+    env.events()
+        .publish(("call_registry", "contract_unpaused"), admin.clone());
+}
+
 pub fn emit_call_metadata_updated(
     env: &Env,
     call_id: u64,
@@ -156,5 +168,13 @@ pub fn emit_call_metadata_updated(
             new_cid.clone(),
             version,
         ),
+    );
+}
+
+/// Emitted when the contract WASM is upgraded
+pub fn emit_contract_upgraded(env: &Env, old_version: u32, new_version: u32, admin: &Address) {
+    env.events().publish(
+        ("call_registry", "contract_upgraded"),
+        (old_version, new_version, admin.clone()),
     );
 }
