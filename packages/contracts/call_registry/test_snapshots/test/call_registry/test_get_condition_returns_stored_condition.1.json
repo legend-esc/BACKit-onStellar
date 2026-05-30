@@ -293,14 +293,6 @@
                     },
                     {
                       "key": {
-                        "symbol": "down_stakes"
-                      },
-                      "val": {
-                        "map": []
-                      }
-                    },
-                    {
-                      "key": {
                         "symbol": "end_price"
                       },
                       "val": {
@@ -410,14 +402,6 @@
                       "val": {
                         "i128": "0"
                       }
-                    },
-                    {
-                      "key": {
-                        "symbol": "up_stakes"
-                      },
-                      "val": {
-                        "map": []
-                      }
                     }
                   ]
                 }
@@ -523,6 +507,14 @@
                     "storage": [
                       {
                         "key": {
+                          "symbol": "version"
+                        },
+                        "val": {
+                          "u32": 1
+                        }
+                      },
+                      {
+                        "key": {
                           "vec": [
                             {
                               "symbol": "CallCounter"
@@ -589,6 +581,14 @@
                               },
                               "val": {
                                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                              }
+                            },
+                            {
+                              "key": {
+                                "symbol": "paused"
+                              },
+                              "val": {
+                                "bool": false
                               }
                             },
                             {

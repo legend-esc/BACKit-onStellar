@@ -21,7 +21,7 @@
                 {
                   "vec": [
                     {
-                      "bytes": "f3df620a0834e25987fcb6960db54641ee3b466ec30acec383cbc2b25b8b5fa8"
+                      "bytes": "ff6db1e4eda59553dd779d55d708b3d6984c2c171b53f279467c17a66463e426"
                     }
                   ]
                 },
@@ -190,7 +190,7 @@
                   "symbol": "Submission"
                 },
                 {
-                  "bytes": "f3df620a0834e25987fcb6960db54641ee3b466ec30acec383cbc2b25b8b5fa8"
+                  "bytes": "ff6db1e4eda59553dd779d55d708b3d6984c2c171b53f279467c17a66463e426"
                 },
                 {
                   "u64": "1"
@@ -213,7 +213,7 @@
                       "symbol": "Submission"
                     },
                     {
-                      "bytes": "f3df620a0834e25987fcb6960db54641ee3b466ec30acec383cbc2b25b8b5fa8"
+                      "bytes": "ff6db1e4eda59553dd779d55d708b3d6984c2c171b53f279467c17a66463e426"
                     },
                     {
                       "u64": "1"
@@ -467,7 +467,7 @@
                           "map": [
                             {
                               "key": {
-                                "bytes": "f3df620a0834e25987fcb6960db54641ee3b466ec30acec383cbc2b25b8b5fa8"
+                                "bytes": "ff6db1e4eda59553dd779d55d708b3d6984c2c171b53f279467c17a66463e426"
                               },
                               "val": {
                                 "bool": true
@@ -481,6 +481,18 @@
                           "vec": [
                             {
                               "symbol": "Quorum"
+                            }
+                          ]
+                        },
+                        "val": {
+                          "u32": 1
+                        }
+                      },
+                      {
+                        "key": {
+                          "vec": [
+                            {
+                              "symbol": "Version"
                             }
                           ]
                         },

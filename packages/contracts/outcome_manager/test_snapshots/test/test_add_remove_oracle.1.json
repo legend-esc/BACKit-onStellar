@@ -21,7 +21,7 @@
                 {
                   "vec": [
                     {
-                      "bytes": "9272fb5d551c4f9c2baf17802facf6be3077a404f19f251d777e0e01bb9f78d7"
+                      "bytes": "c47cb20a04d2cdb5d450f253fe033c8a8801a088a5650bffd854b2740a70326c"
                     }
                   ]
                 },
@@ -55,7 +55,7 @@
               "function_name": "add_oracle",
               "args": [
                 {
-                  "bytes": "ec768ac97e95ddb749b5078b45ae19679de694d20710a8ec2162759b3f3ed351"
+                  "bytes": "09e0322fbdb35d26624205d3e4a843a0425613a85eee241ad2ca95928229b0b7"
                 }
               ]
             }
@@ -75,7 +75,7 @@
               "function_name": "remove_oracle",
               "args": [
                 {
-                  "bytes": "ec768ac97e95ddb749b5078b45ae19679de694d20710a8ec2162759b3f3ed351"
+                  "bytes": "09e0322fbdb35d26624205d3e4a843a0425613a85eee241ad2ca95928229b0b7"
                 }
               ]
             }
@@ -278,7 +278,7 @@
                           "map": [
                             {
                               "key": {
-                                "bytes": "9272fb5d551c4f9c2baf17802facf6be3077a404f19f251d777e0e01bb9f78d7"
+                                "bytes": "c47cb20a04d2cdb5d450f253fe033c8a8801a088a5650bffd854b2740a70326c"
                               },
                               "val": {
                                 "bool": true
@@ -292,6 +292,18 @@
                           "vec": [
                             {
                               "symbol": "Quorum"
+                            }
+                          ]
+                        },
+                        "val": {
+                          "u32": 1
+                        }
+                      },
+                      {
+                        "key": {
+                          "vec": [
+                            {
+                              "symbol": "Version"
                             }
                           ]
                         },

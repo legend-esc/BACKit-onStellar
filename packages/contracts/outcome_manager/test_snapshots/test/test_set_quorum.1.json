@@ -21,7 +21,7 @@
                 {
                   "vec": [
                     {
-                      "bytes": "48258569fab4f3ecbb0e5cb9e5049251374bae7245520c1076cfcfbdec7949e5"
+                      "bytes": "809351c4449a813878f240095f00a9b347e0add6504d4d7e382566120a25ef44"
                     }
                   ]
                 },
@@ -55,7 +55,7 @@
               "function_name": "add_oracle",
               "args": [
                 {
-                  "bytes": "a2e7280e4aba9b5a9310ca235f762e828837b6ee1f4e8ab98a13d0a50cbf62c2"
+                  "bytes": "5caa0a35f0ee402ce61311b3a391ecaab044da14e1b06439996e3a12274116cb"
                 }
               ]
             }
@@ -277,7 +277,7 @@
                           "map": [
                             {
                               "key": {
-                                "bytes": "48258569fab4f3ecbb0e5cb9e5049251374bae7245520c1076cfcfbdec7949e5"
+                                "bytes": "5caa0a35f0ee402ce61311b3a391ecaab044da14e1b06439996e3a12274116cb"
                               },
                               "val": {
                                 "bool": true
@@ -285,7 +285,7 @@
                             },
                             {
                               "key": {
-                                "bytes": "a2e7280e4aba9b5a9310ca235f762e828837b6ee1f4e8ab98a13d0a50cbf62c2"
+                                "bytes": "809351c4449a813878f240095f00a9b347e0add6504d4d7e382566120a25ef44"
                               },
                               "val": {
                                 "bool": true
@@ -304,6 +304,18 @@
                         },
                         "val": {
                           "u32": 2
+                        }
+                      },
+                      {
+                        "key": {
+                          "vec": [
+                            {
+                              "symbol": "Version"
+                            }
+                          ]
+                        },
+                        "val": {
+                          "u32": 1
                         }
                       }
                     ]

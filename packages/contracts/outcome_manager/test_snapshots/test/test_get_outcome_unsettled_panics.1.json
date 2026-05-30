@@ -21,7 +21,7 @@
                 {
                   "vec": [
                     {
-                      "bytes": "0c2aa5f2c6843403d6b9b64c8ffc5c189e014e596bd9b47e19eeb9f45a9da9b2"
+                      "bytes": "d0e4ba742e31c1bfd779ebf9a79de295eaeff9afa348816292aeb86ef9633e0c"
                     }
                   ]
                 },
@@ -173,7 +173,7 @@
                           "map": [
                             {
                               "key": {
-                                "bytes": "0c2aa5f2c6843403d6b9b64c8ffc5c189e014e596bd9b47e19eeb9f45a9da9b2"
+                                "bytes": "d0e4ba742e31c1bfd779ebf9a79de295eaeff9afa348816292aeb86ef9633e0c"
                               },
                               "val": {
                                 "bool": true
@@ -187,6 +187,18 @@
                           "vec": [
                             {
                               "symbol": "Quorum"
+                            }
+                          ]
+                        },
+                        "val": {
+                          "u32": 1
+                        }
+                      },
+                      {
+                        "key": {
+                          "vec": [
+                            {
+                              "symbol": "Version"
                             }
                           ]
                         },

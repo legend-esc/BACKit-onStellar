@@ -381,8 +381,8 @@ impl CallRegistry {
         
         // Check if creator staked on the winning position
         let creator_winning_stake = match outcome {
-            OUTCOME_UP => call.up_stakes.get(call.creator.clone()).unwrap_or(0),
-            OUTCOME_DOWN => call.down_stakes.get(call.creator.clone()).unwrap_or(0),
+            OUTCOME_UP => get_user_stake(&env, call.id, &call.creator, 1),
+            OUTCOME_DOWN => get_user_stake(&env, call.id, &call.creator, 2),
             _ => 0,
         };
         
