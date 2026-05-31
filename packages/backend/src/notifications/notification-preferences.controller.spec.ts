@@ -43,7 +43,7 @@ describe('NotificationPreferencesController', () => {
           enabled: true,
         },
       ];
-      service.getPreferences.mockResolvedValue(mockResult as any);
+      service.getPreferences.mockResolvedValue(mockResult);
 
       const result = await controller.getPreferences('user_addr');
 
@@ -63,7 +63,7 @@ describe('NotificationPreferencesController', () => {
           enabled: true,
         },
       ];
-      service.updatePreferences.mockResolvedValue(mockResult as any);
+      service.updatePreferences.mockResolvedValue(mockResult);
 
       const body = {
         preferences: [

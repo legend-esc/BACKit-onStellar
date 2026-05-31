@@ -9,7 +9,13 @@ import {
   ValidationPipe,
   UsePipes,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { NotificationPreferencesService } from './notification-preferences.service';
 import { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
 
@@ -22,7 +28,10 @@ export class NotificationPreferencesController {
 
   @Get()
   @ApiOperation({ summary: 'Get notification preferences for a user' })
-  @ApiParam({ name: 'address', description: 'Stellar wallet address of the user' })
+  @ApiParam({
+    name: 'address',
+    description: 'Stellar wallet address of the user',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of user notification preferences.',
@@ -34,7 +43,10 @@ export class NotificationPreferencesController {
   @Patch()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update notification preferences for a user' })
-  @ApiParam({ name: 'address', description: 'Stellar wallet address of the user' })
+  @ApiParam({
+    name: 'address',
+    description: 'Stellar wallet address of the user',
+  })
   @ApiBody({ type: UpdateNotificationPreferencesDto })
   @ApiResponse({
     status: 200,

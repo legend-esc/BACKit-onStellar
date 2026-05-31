@@ -39,10 +39,14 @@ export class IpfsService {
     try {
       // In production this would call a pinning service (Pinata, web3.storage, etc.)
       const cid = `bafyevidence_${payload.callId}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-      this.logger.log(`Pinned oracle evidence for call ${payload.callId}: ${cid}`);
+      this.logger.log(
+        `Pinned oracle evidence for call ${payload.callId}: ${cid}`,
+      );
       return cid;
     } catch (error) {
-      this.logger.warn(`IPFS pinning failed for call ${payload.callId}: ${(error as Error).message}`);
+      this.logger.warn(
+        `IPFS pinning failed for call ${payload.callId}: ${(error as Error).message}`,
+      );
       throw error;
     }
   }

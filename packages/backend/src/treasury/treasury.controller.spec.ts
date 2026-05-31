@@ -25,8 +25,7 @@ describe('TreasuryController', () => {
 
   it('delegates summary', async () => {
     service.getSummary.mockResolvedValue({ totalFees: '0', byToken: [] });
-    await controller.getSummary({} as any);
+    await controller.getSummary({});
     expect(service.getSummary).toHaveBeenCalled();
   });
 });
-

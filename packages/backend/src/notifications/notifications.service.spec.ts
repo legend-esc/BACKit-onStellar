@@ -43,7 +43,9 @@ describe('NotificationsService', () => {
         },
         {
           provide: ExternalDispatcherService,
-          useValue: { enqueueNotification: jest.fn().mockResolvedValue(undefined) },
+          useValue: {
+            enqueueNotification: jest.fn().mockResolvedValue(undefined),
+          },
         },
         {
           provide: NotificationPreferencesService,
@@ -146,10 +148,12 @@ describe('NotificationsService', () => {
     beforeEach(() => {
       repo.create.mockReturnValue(mockNotification);
       repo.save.mockResolvedValue(mockNotification);
-      const prefService = module.get(NotificationPreferencesService) as jest.Mocked<NotificationPreferencesService>;
-      prefService.checkPreference.mockImplementation(async (address, type, channel) => {
-        return channel === NotificationChannel.IN_APP;
-      });
+      const prefService = module.get(NotificationPreferencesService);
+      prefService.checkPreference.mockImplementation(
+        async (address, type, channel) => {
+          return channel === NotificationChannel.IN_APP;
+        },
+      );
     });
 
     it('notifyBackedCall should create BACKED_CALL notification', async () => {
@@ -178,14 +182,19 @@ describe('NotificationsService', () => {
 
     beforeEach(() => {
       preferenceService = module.get(NotificationPreferencesService);
-      repo.create.mockImplementation((dto: any) => ({ ...mockNotification, ...dto } as any));
+      repo.create.mockImplementation((dto: any) => ({
+        ...mockNotification,
+        ...dto,
+      }));
       repo.save.mockImplementation(async (entity) => entity as any);
     });
 
     it('should NOT create in-app notification if IN_APP channel is disabled', async () => {
-      preferenceService.checkPreference.mockImplementation(async (address, type, channel) => {
-        return channel !== NotificationChannel.IN_APP;
-      });
+      preferenceService.checkPreference.mockImplementation(
+        async (address, type, channel) => {
+          return channel !== NotificationChannel.IN_APP;
+        },
+      );
 
       await service.notify(
         'user_abc',
@@ -200,9 +209,11 @@ describe('NotificationsService', () => {
     });
 
     it('should create email notification if EMAIL channel is enabled', async () => {
-      preferenceService.checkPreference.mockImplementation(async (address, type, channel) => {
-        return channel === NotificationChannel.EMAIL;
-      });
+      preferenceService.checkPreference.mockImplementation(
+        async (address, type, channel) => {
+          return channel === NotificationChannel.EMAIL;
+        },
+      );
 
       await service.notify(
         'user_abc',
@@ -211,14 +222,16 @@ describe('NotificationsService', () => {
         'follower123',
       );
 
-      expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({
-        userId: 'user_abc',
-        type: NotificationType.NEW_FOLLOWER,
-        message: 'Someone followed you',
-        referenceId: 'follower123',
-        inApp: false,
-        dispatchType: DispatchType.EMAIL,
-      }));
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user_abc',
+          type: NotificationType.NEW_FOLLOWER,
+          message: 'Someone followed you',
+          referenceId: 'follower123',
+          inApp: false,
+          dispatchType: DispatchType.EMAIL,
+        }),
+      );
     });
   });
 });

@@ -1,4 +1,9 @@
-import { registerDecorator, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator';
+import {
+  registerDecorator,
+  ValidationOptions,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
 
 @ValidatorConstraint({ name: 'isStellarAddress', async: false })
 export class IsStellarAddressConstraint implements ValidatorConstraintInterface {
@@ -13,7 +18,7 @@ export class IsStellarAddressConstraint implements ValidatorConstraintInterface 
 }
 
 export function IsStellarAddress(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,

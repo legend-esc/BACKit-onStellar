@@ -2,7 +2,9 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { AsyncLocalStorage } from 'async_hooks';
 
-export const correlationStorage = new AsyncLocalStorage<{ correlationId: string }>();
+export const correlationStorage = new AsyncLocalStorage<{
+  correlationId: string;
+}>();
 
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {

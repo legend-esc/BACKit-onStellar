@@ -28,7 +28,9 @@ export class NotificationPreferencesService {
     private readonly preferenceRepository: Repository<NotificationPreference>,
   ) {}
 
-  async initializePreferences(userAddress: string): Promise<NotificationPreference[]> {
+  async initializePreferences(
+    userAddress: string,
+  ): Promise<NotificationPreference[]> {
     const existing = await this.preferenceRepository.find({
       where: { userAddress },
     });
@@ -114,7 +116,7 @@ export class NotificationPreferencesService {
       const reCheck = await this.preferenceRepository.findOne({
         where: { userAddress, notificationType: type, channel },
       });
-      return reCheck ? reCheck.enabled : (channel === NotificationChannel.IN_APP);
+      return reCheck ? reCheck.enabled : channel === NotificationChannel.IN_APP;
     }
 
     return preference.enabled;

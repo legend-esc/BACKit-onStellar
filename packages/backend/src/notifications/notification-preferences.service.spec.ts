@@ -54,11 +54,13 @@ describe('NotificationPreferencesService', () => {
           channel: NotificationChannel.IN_APP,
           enabled: true,
         },
-      ] as any);
+      ]);
 
       const result = await service.initializePreferences('user_addr');
 
-      expect(repo.find).toHaveBeenCalledWith({ where: { userAddress: 'user_addr' } });
+      expect(repo.find).toHaveBeenCalledWith({
+        where: { userAddress: 'user_addr' },
+      });
       expect(repo.create).toHaveBeenCalled();
       const createdItems = repo.create.mock.calls[0][0] as any[];
       expect(createdItems).toHaveLength(12); // 4 types * 3 channels

@@ -6,7 +6,10 @@ import { NotificationType } from './notification-type.enum';
 import { DispatchType } from './dispatch-type.enum';
 import { ExternalDispatcherService } from './external-dispatcher/external-dispatcher.service';
 import { NotificationChannel } from './notification-channel.enum';
-import { NotificationPreferencesService, SUPPORTED_TYPES } from './notification-preferences.service';
+import {
+  NotificationPreferencesService,
+  SUPPORTED_TYPES,
+} from './notification-preferences.service';
 
 export interface PaginatedNotifications {
   data: NotificationEntity[];
@@ -135,7 +138,9 @@ export class NotificationsService {
     if (dispatchType !== DispatchType.NONE) {
       // Enqueue async dispatch (do not block HTTP request).
       // Cron will also backfill any missed rows.
-      this.externalDispatcher.enqueueNotification(saved.id).catch(() => undefined);
+      this.externalDispatcher
+        .enqueueNotification(saved.id)
+        .catch(() => undefined);
     }
 
     return saved;

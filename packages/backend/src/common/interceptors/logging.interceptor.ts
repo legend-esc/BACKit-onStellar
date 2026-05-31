@@ -9,7 +9,13 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { correlationStorage } from '../middleware/correlation-id.middleware';
 
-const SENSITIVE_KEYS = ['signature', 'token', 'password', 'secret', 'privateKey'];
+const SENSITIVE_KEYS = [
+  'signature',
+  'token',
+  'password',
+  'secret',
+  'privateKey',
+];
 
 function maskSensitive(obj: any): any {
   if (!obj || typeof obj !== 'object') return obj;

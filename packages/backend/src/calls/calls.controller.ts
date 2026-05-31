@@ -45,8 +45,19 @@ export class CallsController {
 
   @Post('prepare')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Pin call content to IPFS and return CID for on-chain creation' })
-  @ApiResponse({ status: 201, description: 'Content pinned', schema: { example: { cid: 'bafybeig...', ipfsUrl: 'https://ipfs.io/ipfs/bafybeig...' } } })
+  @ApiOperation({
+    summary: 'Pin call content to IPFS and return CID for on-chain creation',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Content pinned',
+    schema: {
+      example: {
+        cid: 'bafybeig...',
+        ipfsUrl: 'https://ipfs.io/ipfs/bafybeig...',
+      },
+    },
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   prepareCall(@Body() dto: PrepareCallDto) {
     return this.callsService.prepareCall(dto);

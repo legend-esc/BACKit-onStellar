@@ -22,9 +22,14 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || process.env.POSTGRES_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || process.env.POSTGRES_PORT || '5432', 10),
-      username: process.env.DB_USERNAME || process.env.POSTGRES_USER || 'postgres',
-      password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres',
+      port: parseInt(
+        process.env.DB_PORT || process.env.POSTGRES_PORT || '5432',
+        10,
+      ),
+      username:
+        process.env.DB_USERNAME || process.env.POSTGRES_USER || 'postgres',
+      password:
+        process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres',
       database: process.env.DB_NAME || process.env.POSTGRES_DB || 'backit',
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV !== 'production',
@@ -40,9 +45,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     AuthModule,
   ],
   controllers: [],
-  providers: [
-    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
-  ],
+  providers: [{ provide: APP_INTERCEPTOR, useClass: LoggingInterceptor }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

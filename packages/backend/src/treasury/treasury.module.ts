@@ -12,4 +12,3 @@ import { PlatformConfigModule } from '../config/config.module';
   exports: [TreasuryService],
 })
 export class TreasuryModule {}
-

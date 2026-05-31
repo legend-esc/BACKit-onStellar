@@ -43,11 +43,13 @@ export class UsersService {
       });
       user = await this.usersRepo.save(user);
       // Default notification preferences on user creation
-      await this.preferenceService.initializePreferences(walletAddress).catch((err) => {
-        this.logger.error(
-          `Failed to initialize notification preferences for ${walletAddress}: ${err.message}`,
-        );
-      });
+      await this.preferenceService
+        .initializePreferences(walletAddress)
+        .catch((err) => {
+          this.logger.error(
+            `Failed to initialize notification preferences for ${walletAddress}: ${err.message}`,
+          );
+        });
     }
     return user;
   }
@@ -146,11 +148,13 @@ export class UsersService {
 
     const savedUser = await this.usersRepo.save(newUser);
     // Default notification preferences on user creation
-    await this.preferenceService.initializePreferences(walletAddress).catch((err) => {
-      this.logger.error(
-        `Failed to initialize notification preferences for ${walletAddress}: ${err.message}`,
-      );
-    });
+    await this.preferenceService
+      .initializePreferences(walletAddress)
+      .catch((err) => {
+        this.logger.error(
+          `Failed to initialize notification preferences for ${walletAddress}: ${err.message}`,
+        );
+      });
     return savedUser;
   }
 
