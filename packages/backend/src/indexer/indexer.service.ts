@@ -5,6 +5,7 @@ import { SorobanRpc, xdr } from '@stellar/stellar-sdk';
 import { EventLog, EventType } from './event-log.entity';
 import { PlatformSettings } from './entities/platform-settings.entity';
 import { retryWithBackoff } from '../utils/retry';
+import { Retryable } from '../common/decorators/retryable.decorator';
 import { ConfigService } from '../config/config.service';
 import { parseAdminParamsChanged } from './parsers/admin-params.parser';
 import { PayoutsService } from '../payouts/payouts.service';
@@ -276,6 +277,7 @@ export class IndexerService {
 
   // ─── Get Latest Ledger ────────────────────────────────────────────────────
 
+  @Retryable(3, 1000)
   async getLatestLedger(): Promise<SorobanRpc.Api.GetLatestLedgerResponse> {
     return retryWithBackoff(
       () => this.rpcServer.getLatestLedger(),
