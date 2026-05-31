@@ -18,6 +18,9 @@ async function bootstrap() {
   // Global exception filter — standardised { statusCode, error, message, timestamp, path }
   app.useGlobalFilters(new GlobalExceptionFilter());
 
+  // Global exception filter — standardised { statusCode, error, message, timestamp, path }
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
