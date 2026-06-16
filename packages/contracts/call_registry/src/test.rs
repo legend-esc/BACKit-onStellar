@@ -253,8 +253,7 @@ mod call_registry {
         );
 
         // Read back the stored DataEntry for the metadata hash
-        extern crate alloc;
-        let key_str = alloc::format!("call_{}_hash", call.id);
+        let key_str = std::format!("call_{}_hash", call.id);
         let key = Bytes::from_slice(&env, key_str.as_bytes());
         let entry: Option<Bytes> = client.get_call_data_entry(&call.id, &key);
         assert!(entry.is_some(), "DataEntry should be set");

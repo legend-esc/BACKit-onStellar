@@ -1,7 +1,5 @@
 #![no_std]
-
-extern crate alloc;
-use alloc::format;
+#![allow(deprecated)]
 
 use soroban_sdk::{contract, contractimpl, token, Address, Bytes, BytesN, Env, Map, Symbol, Vec};
 
@@ -306,42 +304,79 @@ impl CallRegistry {
         // Implement a small base64 encoder that works in no_std using soroban vectors.
         fn encode_base64(env: &Env, input: &Bytes) -> Bytes {
             let table = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-            let mut out = alloc::vec::Vec::new();
+            let mut out_buf = [0u8; 128];
+            let mut out_idx = 0;
             let mut i = 0u32;
             let input_len = input.len();
             while i + 3 <= input_len {
+                if out_idx + 4 > out_buf.len() { break; } // safety bound
                 let b0 = input.get(i).unwrap_or(0);
                 let b1 = input.get(i + 1).unwrap_or(0);
                 let b2 = input.get(i + 2).unwrap_or(0);
                 let n = ((b0 as u32) << 16) | ((b1 as u32) << 8) | (b2 as u32);
-                out.push(table[((n >> 18) & 0x3F) as usize]);
-                out.push(table[((n >> 12) & 0x3F) as usize]);
-                out.push(table[((n >> 6) & 0x3F) as usize]);
-                out.push(table[(n & 0x3F) as usize]);
+                out_buf[out_idx] = table[((n >> 18) & 0x3F) as usize];
+                out_buf[out_idx + 1] = table[((n >> 12) & 0x3F) as usize];
+                out_buf[out_idx + 2] = table[((n >> 6) & 0x3F) as usize];
+                out_buf[out_idx + 3] = table[(n & 0x3F) as usize];
+                out_idx += 4;
                 i += 3;
             }
             let rem = input_len - i;
-            if rem == 1 {
+            if rem == 1 && out_idx + 4 <= out_buf.len() {
                 let b0 = input.get(i).unwrap_or(0);
                 let n = (b0 as u32) << 16;
-                out.push(table[((n >> 18) & 0x3F) as usize]);
-                out.push(table[((n >> 12) & 0x3F) as usize]);
-                out.push(b'=');
-                out.push(b'=');
-            } else if rem == 2 {
+                out_buf[out_idx] = table[((n >> 18) & 0x3F) as usize];
+                out_buf[out_idx + 1] = table[((n >> 12) & 0x3F) as usize];
+                out_buf[out_idx + 2] = b'=';
+                out_buf[out_idx + 3] = b'=';
+                out_idx += 4;
+            } else if rem == 2 && out_idx + 4 <= out_buf.len() {
                 let b0 = input.get(i).unwrap_or(0);
                 let b1 = input.get(i + 1).unwrap_or(0);
                 let n = ((b0 as u32) << 16) | ((b1 as u32) << 8);
-                out.push(table[((n >> 18) & 0x3F) as usize]);
-                out.push(table[((n >> 12) & 0x3F) as usize]);
-                out.push(table[((n >> 6) & 0x3F) as usize]);
-                out.push(b'=');
+                out_buf[out_idx] = table[((n >> 18) & 0x3F) as usize];
+                out_buf[out_idx + 1] = table[((n >> 12) & 0x3F) as usize];
+                out_buf[out_idx + 2] = table[((n >> 6) & 0x3F) as usize];
+                out_buf[out_idx + 3] = b'=';
+                out_idx += 4;
             }
-            Bytes::from_slice(env, &out)
+            Bytes::from_slice(env, &out_buf[..out_idx])
         }
 
-        let key_cid = Bytes::from_slice(&env, format!("call_{}_cid", call_id).as_bytes());
-        let key_hash = Bytes::from_slice(&env, format!("call_{}_hash", call_id).as_bytes());
+        fn format_key(env: &Env, prefix: &[u8], id: u64, suffix: &[u8]) -> Bytes {
+            let mut buf = [0u8; 64];
+            let mut idx = 0;
+            for &b in prefix {
+                buf[idx] = b;
+                idx += 1;
+            }
+            if id == 0 {
+                buf[idx] = b'0';
+                idx += 1;
+            } else {
+                let mut temp = id;
+                let mut digits = [0u8; 20];
+                let mut d_idx = 0;
+                while temp > 0 {
+                    digits[d_idx] = b'0' + (temp % 10) as u8;
+                    temp /= 10;
+                    d_idx += 1;
+                }
+                while d_idx > 0 {
+                    d_idx -= 1;
+                    buf[idx] = digits[d_idx];
+                    idx += 1;
+                }
+            }
+            for &b in suffix {
+                buf[idx] = b;
+                idx += 1;
+            }
+            Bytes::from_slice(env, &buf[..idx])
+        }
+
+        let key_cid = format_key(&env, b"call_", call_id, b"_cid");
+        let key_hash = format_key(&env, b"call_", call_id, b"_hash");
         // Base64-encode the ipfs_cid and the metadata_hash raw bytes
         let cid_b64 = encode_base64(&env, &ipfs_cid);
         let raw_hash = Bytes::from_slice(&env, &metadata_hash.to_array());
