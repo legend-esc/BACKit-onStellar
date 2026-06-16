@@ -13,6 +13,7 @@ import {
   Award,
   Target,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 // Simple fade-in hook
 function useFadeIn(threshold = 0.15) {
@@ -60,6 +61,7 @@ function FadeIn({
 
 export default function HomePage() {
   const [walletConnected, setWalletConnected] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div
@@ -237,24 +239,22 @@ export default function HomePage() {
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
-            LIVE — Prediction Markets on Stellar
+            {t("hero.badge", "LIVE — Prediction Markets on Stellar")}
           </div>
 
           <h1 className="heading font-extrabold text-5xl md:text-7xl lg:text-8xl leading-[1.0] mb-6 tracking-tight">
-            Predict With
+            {t("hero.title1", "Predict With")}
             <br />
-            <span className="shimmer-text">Your Friends.</span>
+            <span className="shimmer-text">{t("hero.title2", "Your Friends.")}</span>
             <br />
-            <span className="text-white">Win Together.</span>
+            <span className="text-white">{t("hero.title3", "Win Together.")}</span>
           </h1>
 
           <p
             className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
             style={{ fontFamily: "inherit" }}
           >
-            Social prediction markets where your calls earn real yield. Stake
-            your conviction, compete on the leaderboard, and settle instantly
-            on-chain.
+            {t("hero.subtitle", "Social prediction markets where your calls earn real yield. Stake your conviction, compete on the leaderboard, and settle instantly on-chain.")}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
@@ -266,7 +266,7 @@ export default function HomePage() {
                 fontFamily: "Bricolage Grotesque, sans-serif",
               }}
             >
-              Launch App <ArrowRight className="w-4 h-4" />
+              {t("hero.launchApp", "Launch App")} <ArrowRight className="w-4 h-4" />
             </button>
             <a
               href="#how"
@@ -276,17 +276,17 @@ export default function HomePage() {
                 fontFamily: "Bricolage Grotesque, sans-serif",
               }}
             >
-              How it Works <ChevronDown className="w-4 h-4" />
+              {t("hero.howItWorks", "How it Works")} <ChevronDown className="w-4 h-4" />
             </a>
           </div>
 
           {/* Stats bar */}
           <div className="flex flex-wrap justify-center gap-8 md:gap-16">
             {[
-              { label: "Total Volume", value: "$4.2M" },
-              { label: "Active Predictors", value: "18,400" },
-              { label: "Avg Win Rate", value: "61%" },
-              { label: "Chains Supported", value: "4" },
+              { label: t("stats.totalVolume", "Total Volume"), value: "$4.2M" },
+              { label: t("stats.activePredictors", "Active Predictors"), value: "18,400" },
+              { label: t("stats.avgWinRate", "Avg Win Rate"), value: "61%" },
+              { label: t("stats.chainsSupported", "Chains Supported"), value: "4" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="heading font-bold text-2xl md:text-3xl text-white">
@@ -376,10 +376,10 @@ export default function HomePage() {
           <FadeIn>
             <div className="text-center mb-16">
               <div className="text-xs text-[#22c55e] mb-3 tracking-widest">
-                THE PROCESS
+                {t("howItWorks.tagline", "THE PROCESS")}
               </div>
               <h2 className="heading font-bold text-4xl md:text-5xl">
-                Three steps to the moon.
+                {t("howItWorks.title", "Three steps to the moon.")}
               </h2>
             </div>
           </FadeIn>
