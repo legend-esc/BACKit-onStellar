@@ -262,7 +262,13 @@ pub fn emit_xlm_call_created(
 
 /// Emitted when a staker adds native XLM stake to a call.
 /// Distinct from `stake_added` so indexers can separately tally XLM volume.
-pub fn emit_xlm_stake_added(env: &Env, call_id: u64, staker: &Address, amount: i128, position: u32) {
+pub fn emit_xlm_stake_added(
+    env: &Env,
+    call_id: u64,
+    staker: &Address,
+    amount: i128,
+    position: u32,
+) {
     env.events().publish(
         ("call_registry", "xlm_stake_added"),
         (call_id, staker.clone(), amount, position),

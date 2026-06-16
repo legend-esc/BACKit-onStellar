@@ -1,4 +1,4 @@
-use crate::types::{Call, ContractConfig, GlobalStats, CreatorStats, StorageStats};
+use crate::types::{Call, ContractConfig, CreatorStats, GlobalStats, StorageStats};
 use soroban_sdk::{contracttype, Address, Env};
 
 // ~120 days in ledgers (5s per ledger): 120 * 24 * 3600 / 5 = 2_073_600

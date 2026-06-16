@@ -64,7 +64,6 @@ pub enum PersistentKey {
     Votes(u64),
 }
 
-
 /// A single price data point submitted by an oracle for TWAP calculation
 #[contracttype]
 #[derive(Clone)]
