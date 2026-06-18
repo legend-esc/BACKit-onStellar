@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { Injectable, Logger } from '@nestjs/common';
 
 export interface CallContent {
