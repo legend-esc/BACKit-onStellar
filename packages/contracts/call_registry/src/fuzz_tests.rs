@@ -1,9 +1,11 @@
 #![cfg(test)]
+#![allow(deprecated)]
+#![allow(unused)]
 
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, Ledger as _},
-    Address, Bytes, Env,
+    Address, Bytes, BytesN, Env,
 };
 
 use crate::{types::ConditionType, CallRegistry, CallRegistryClient};
@@ -23,12 +25,12 @@ fn setup_fuzz_env() -> (Env, CallRegistryClient<'static>, Address, Address, Addr
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id = env.register_contract(None, CallRegistry);
+    let contract_id = env.register(CallRegistry, ());
     let client = CallRegistryClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
     let outcome_manager = Address::generate(&env);
-    let stake_token = env.register_contract(None, MockToken);
+    let stake_token = env.register(MockToken, ());
 
     client.initialize(&admin, &outcome_manager, &TEST_MIN_STAKE);
     client.whitelist_token(&stake_token);
@@ -45,19 +47,22 @@ fn create_test_call(
 ) -> u64 {
     let token_address = Address::generate(env);
     let pair_id = Bytes::from_slice(env, b"USDC/XLM");
-    let ipfs_cid = Bytes::from_slice(env, b"QmTest");
+    let metadata_hash = BytesN::from_array(env, &[0u8; 32]);
 
     let call = client.create_call(
         creator,
-        stake_token,
-        &100_000_000_i128,
-        &TEST_START_PRICE,
-        &end_ts,
-        &token_address,
-        &pair_id,
-        &ipfs_cid,
-        &ConditionType::TargetAbove(100_000_000_i128),
-        &2,
+        &crate::types::CallInitArgs {
+            stake_token: stake_token.clone(),
+            stake_amount: 100_000_000_i128,
+            start_price: TEST_START_PRICE,
+            end_ts: end_ts,
+            token_address: token_address.clone(),
+            pair_id: pair_id.clone(),
+            ipfs_cid: Bytes::from_slice(env, b"QmXxxx"),
+            metadata_hash: metadata_hash.clone(),
+            condition: ConditionType::TargetAbove(100_000_000_i128),
+            outcome_count: 2,
+        }
     );
 
     call.id
@@ -309,22 +314,25 @@ fn test_fuzz_extreme_timestamp_near_max() {
     let creator = Address::generate(&env);
     let token_address = Address::generate(&env);
     let pair_id = Bytes::from_slice(&env, b"USDC/XLM");
-    let ipfs_cid = Bytes::from_slice(&env, b"QmTest");
+    let metadata_hash = BytesN::from_array(&env, &[0u8; 32]);
 
     let extreme_timestamps = [u64::MAX - 1, u64::MAX - 100, u64::MAX - 1000, u64::MAX / 2];
 
     for &end_ts in &extreme_timestamps {
         let call = client.create_call(
             &creator,
-            &stake_token,
-            &100_000_000,
-            &TEST_START_PRICE,
-            &end_ts,
-            &token_address,
-            &pair_id,
-            &ipfs_cid,
-            &ConditionType::TargetAbove(100_000_000),
-            &2,
+            &crate::types::CallInitArgs {
+                stake_token: stake_token.clone(),
+                stake_amount: 100_000_000,
+                start_price: TEST_START_PRICE,
+                end_ts,
+                token_address: token_address.clone(),
+                pair_id: pair_id.clone(),
+                ipfs_cid: Bytes::from_slice(&env, b"QmXxxx"),
+                metadata_hash: metadata_hash.clone(),
+                condition: ConditionType::TargetAbove(100_000_000),
+                outcome_count: 2,
+            }
         );
 
         let staker = Address::generate(&env);

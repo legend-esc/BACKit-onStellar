@@ -1,5 +1,8 @@
+#![allow(deprecated)]
+#![allow(unused)]
+
 use soroban_sdk::symbol_short;
-use soroban_sdk::{Address, Bytes, Env, Symbol};
+use soroban_sdk::{Address, Bytes, BytesN, Env, Symbol};
 
 pub const PARAM_MAX_STAKE_PER_USER: &str = "max_stake_per_user";
 pub const PARAM_MIN_STAKE: &str = "min_stake";
@@ -16,7 +19,7 @@ pub fn emit_call_created(
     end_ts: u64,
     token_address: &Address,
     pair_id: &Bytes,
-    ipfs_cid: &Bytes,
+    metadata_hash: &BytesN<32>,
     outcome_count: u32,
 ) {
     env.events().publish(
@@ -30,7 +33,7 @@ pub fn emit_call_created(
             end_ts,
             token_address.clone(),
             pair_id.clone(),
-            ipfs_cid.clone(),
+            metadata_hash.clone(),
             outcome_count,
         ),
     );
@@ -178,8 +181,8 @@ pub fn emit_call_metadata_updated(
     env: &Env,
     call_id: u64,
     creator: &Address,
-    old_cid: &Bytes,
-    new_cid: &Bytes,
+    old_hash: &BytesN<32>,
+    new_hash: &BytesN<32>,
     version: u32,
 ) {
     env.events().publish(
@@ -187,8 +190,8 @@ pub fn emit_call_metadata_updated(
         (
             call_id,
             creator.clone(),
-            old_cid.clone(),
-            new_cid.clone(),
+            old_hash.clone(),
+            new_hash.clone(),
             version,
         ),
     );
@@ -199,6 +202,49 @@ pub fn emit_contract_upgraded(env: &Env, old_version: u32, new_version: u32, adm
     env.events().publish(
         ("call_registry", "contract_upgraded"),
         (old_version, new_version, admin.clone()),
+    );
+}
+
+/// Emitted when share tokens are minted
+pub fn emit_shares_minted(
+    env: &Env,
+    call_id: u64,
+    staker: &Address,
+    outcome: u32,
+    amount: i128,
+) {
+    env.events().publish(
+        ("call_registry", "shares_minted"),
+        (call_id, staker.clone(), outcome, amount),
+    );
+}
+
+/// Emitted when share tokens are redeemed
+pub fn emit_shares_redeemed(
+    env: &Env,
+    call_id: u64,
+    staker: &Address,
+    outcome: u32,
+    amount: i128,
+) {
+    env.events().publish(
+        ("call_registry", "shares_redeemed"),
+        (call_id, staker.clone(), outcome, amount),
+    );
+}
+
+/// Emitted when share tokens are transferred
+pub fn emit_shares_transferred(
+    env: &Env,
+    call_id: u64,
+    from: &Address,
+    to: &Address,
+    outcome: u32,
+    amount: i128,
+) {
+    env.events().publish(
+        ("call_registry", "shares_transferred"),
+        (call_id, from.clone(), to.clone(), outcome, amount),
     );
 }
 
@@ -241,7 +287,7 @@ pub fn emit_xlm_call_created(
     end_ts: u64,
     token_address: &Address,
     pair_id: &Bytes,
-    ipfs_cid: &Bytes,
+    metadata_hash: &BytesN<32>,
     outcome_count: u32,
 ) {
     env.events().publish(
@@ -254,7 +300,7 @@ pub fn emit_xlm_call_created(
             end_ts,
             token_address.clone(),
             pair_id.clone(),
-            ipfs_cid.clone(),
+            metadata_hash.clone(),
             outcome_count,
         ),
     );
@@ -296,40 +342,6 @@ pub fn emit_xlm_escrow_released(env: &Env, call_id: u64, to: &Address, amount: i
     env.events().publish(
         ("call_registry", "xlm_escrow_released"),
         (call_id, to.clone(), amount),
-    );
-}
-
-pub fn emit_shares_minted(env: &Env, call_id: u64, staker: &Address, outcome: u32, amount: i128) {
-    env.events().publish(
-        ("call_registry", "SharesMinted"),
-        (call_id, staker.clone(), outcome, amount),
-    );
-}
-
-pub fn emit_shares_redeemed(
-    env: &Env,
-    call_id: u64,
-    redeemer: &Address,
-    outcome: u32,
-    amount: i128,
-) {
-    env.events().publish(
-        ("call_registry", "SharesRedeemed"),
-        (call_id, redeemer.clone(), outcome, amount),
-    );
-}
-
-pub fn emit_shares_transferred(
-    env: &Env,
-    call_id: u64,
-    from: &Address,
-    to: &Address,
-    outcome: u32,
-    amount: i128,
-) {
-    env.events().publish(
-        ("call_registry", "SharesTransferred"),
-        (call_id, from.clone(), to.clone(), outcome, amount),
     );
 }
 

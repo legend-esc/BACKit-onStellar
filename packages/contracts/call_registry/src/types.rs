@@ -11,6 +11,22 @@ pub enum ConditionType {
     Range(i128, i128),
 }
 
+/// Arguments for initializing a new Call
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CallInitArgs {
+    pub stake_token: Address,
+    pub stake_amount: i128,
+    pub start_price: i128,
+    pub end_ts: u64,
+    pub token_address: Address,
+    pub pair_id: Bytes,
+    pub ipfs_cid: Bytes,
+    pub metadata_hash: BytesN<32>,
+    pub condition: ConditionType,
+    pub outcome_count: u32,
+}
+
 /// Represents a prediction call with all its metadata
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
@@ -29,8 +45,8 @@ pub struct Call {
     pub token_address: Address,
     /// DexScreener pair ID for price data
     pub pair_id: Bytes,
-    /// IPFS content hash for call metadata
-    pub ipfs_cid: Bytes,
+    /// 32-byte hash of the IPFS CID or metadata (replaces full bytes to save storage)
+    pub metadata_hash: BytesN<32>,
     /// Number of possible outcomes (default: 2 for backward compatibility)
     pub outcome_count: u32,
     /// Map of outcome indices to total stake amounts
@@ -54,6 +70,7 @@ pub struct Call {
     /// Whether the call has been cancelled by its creator
     pub cancelled: bool,
     pub metadata_version: u32,
+    /// Map of outcome indices to the deployed share token contract addresses
     pub share_tokens: Map<u32, Address>,
 }
 
@@ -105,6 +122,7 @@ pub struct ContractConfig {
     /// Number of seconds before `end_ts` during which staking is no longer
     /// accepted. Default: 300 (5 minutes). Set to 0 to disable the buffer.
     pub staking_cutoff_secs: u64,
+    /// Wasm hash for the share token contract (if enabled)
     pub share_wasm_hash: Option<BytesN<32>>,
 }
 
