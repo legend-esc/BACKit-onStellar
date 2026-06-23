@@ -597,9 +597,7 @@ impl OutcomeManager {
         for i in 0..stakers.len() {
             let staker = stakers.get(i).unwrap();
 
-            // Read staker's stake on the winning outcome from the registry
-            let staker_winning_stake =
-                registry_get_staker_stake(&env, &registry, call_id, &staker, winning_outcome);
+            let staker_winning_stake = stakes.get(i).unwrap();
             if staker_winning_stake <= 0 {
                 soroban_sdk::panic_with_error!(&env, OutcomeError::NothingToClaim);
             }

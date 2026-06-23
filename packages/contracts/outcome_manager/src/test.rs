@@ -17,6 +17,12 @@ const CLAIM_PAYOUT_BUDGET_MEM: u64 = 100_000;
 const BATCH_CLAIM_PAYOUTS_BUDGET_CPU: u64 = 40_000_000;
 const BATCH_CLAIM_PAYOUTS_BUDGET_MEM: u64 = 2_000_000;
 
+#[contracttype]
+pub enum MockDataKey {
+    Call(u64),
+    StakerStake(u64, Address, u32),
+}
+
 #[contract]
 pub struct MockRegistry;
 
@@ -125,7 +131,6 @@ fn setup_single_oracle(
     client.initialize(&admin, &oracles, &1u32, &fee_collector, &0u32, &0u64);
 
     let registry_id = env.register_contract(None, MockRegistry);
-    client.set_registry(&registry_id);
 
     (admin, registry_id, oracle_secret, oracle_pubkey, client)
 }
@@ -736,6 +741,8 @@ fn test_batch_claim_panics_on_duplicate_staker() {
     let staker = Address::generate(&env);
     let mut stakers = Vec::new(&env);
     stakers.push_back(staker.clone());
+    let mut stakes = Vec::new(&env);
+    stakes.push_back(50_i128);
 
     client.batch_claim_payouts(&registry_id, &1u64, &stakers, &stakes, &50_i128, &50_i128);
     let result = client.try_batch_claim_payouts(&registry_id, &1u64, &stakers, &stakes, &50_i128, &50_i128);
@@ -748,6 +755,7 @@ fn test_batch_claim_panics_on_empty_batch() {
     let (_, registry_id, client) = setup_with_fee(&env, 0);
 
     let stakers: Vec<Address> = Vec::new(&env);
+    let stakes: Vec<i128> = Vec::new(&env);
 
     let result = client.try_batch_claim_payouts(&registry_id, &1u64, &stakers, &stakes, &100_i128, &100_i128);
     assert_contract_error(result, OutcomeError::EmptyBatch);
@@ -942,7 +950,7 @@ fn test_fuzz_zero_staker_stake_panics() {
     let staker = Address::generate(&env);
     // Staker has 0 stake on the winning outcome → NothingToClaim
     prepare_mock_payout(&env, &registry_id, 1u64, &staker, 0, 1, 1);
-    let result = client.try_claim_payout(&1u64, &staker);
+    let result = client.try_claim_payout(&registry_id, &1u64, &staker, &0_i128, &1_i128, &1_i128);
     assert_contract_error(result, OutcomeError::NothingToClaim);
 }
 
@@ -951,9 +959,8 @@ fn test_fuzz_zero_total_winning_panics() {
     let env = Env::default();
     let (_, registry_id, client) = setup_with_fee(&env, 0);
     let staker = Address::generate(&env);
-    // Winning pool is 0 → InvalidWinningStake
     prepare_mock_payout(&env, &registry_id, 1u64, &staker, 1, 0, 1);
-    let result = client.try_claim_payout(&1u64, &staker);
+    let result = client.try_claim_payout(&registry_id, &1u64, &staker, &1_i128, &0_i128, &1_i128);
     assert_contract_error(result, OutcomeError::InvalidWinningStake);
 }
 
