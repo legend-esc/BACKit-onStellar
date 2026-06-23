@@ -28,6 +28,7 @@
 #![no_std]
 
 mod auth;
+mod call_types;
 mod errors;
 mod events;
 mod storage;
@@ -38,6 +39,7 @@ use soroban_sdk::{contract, contractimpl, Address, Bytes, BytesN, Env, IntoVal, 
 
 use auth::require_admin;
 use backit_shared::{is_valid_fee_bps, is_valid_outcome};
+use call_types::{Call, CallRegistryError};
 use errors::OutcomeError;
 use events::{
     emit_admin_params_changed, emit_batch_payout_started, emit_contract_upgraded,
@@ -45,8 +47,8 @@ use events::{
     emit_payout_claimed, emit_price_observation_submitted,
 };
 use storage::{
-    set_dispute_window, set_max_submission_delay, InstanceKey, OracleVote, Outcome, PersistentKey,
-    PriceObservation, SignedOutcome, TempKey,
+    set_dispute_window, set_max_submission_delay, InstanceKey, OracleVote, Outcome,
+    PersistentKey, PriceObservation, SignedOutcome, TempKey,
 };
 use verification::{build_message, verify_signature};
 
@@ -83,6 +85,34 @@ fn registry_release_escrow(
 fn registry_mark_settled(env: &Env, registry: &Address, call_id: u64) {
     let args = (call_id,).into_val(env);
     env.invoke_contract::<()>(registry, &Symbol::new(env, "mark_settled"), args);
+}
+
+/// Call `get_call(call_id)` on the CallRegistry and return the decoded Call.
+fn registry_get_call(env: &Env, registry: &Address, call_id: u64) -> Call {
+    let args = (call_id,).into_val(env);
+    let result: Result<Call, CallRegistryError> =
+        env.invoke_contract(registry, &Symbol::new(env, "get_call"), args);
+    match result {
+        Ok(call) => call,
+        Err(_) => soroban_sdk::panic_with_error!(env, OutcomeError::CallNotSettled),
+    }
+}
+
+/// Call `get_staker_stake(call_id, staker, position)` on the CallRegistry.
+fn registry_get_staker_stake(
+    env: &Env,
+    registry: &Address,
+    call_id: u64,
+    staker: &Address,
+    position: u32,
+) -> i128 {
+    let args = (call_id, staker.clone(), position).into_val(env);
+    let result: Result<i128, CallRegistryError> =
+        env.invoke_contract(registry, &Symbol::new(env, "get_staker_stake"), args);
+    match result {
+        Ok(stake) => stake,
+        Err(_) => 0,
+    }
 }
 
 // ─── Pause helper ─────────────────────────────────────────────────────────────
@@ -334,6 +364,15 @@ impl OutcomeManager {
             .set(&InstanceKey::Admin, &new_admin);
     }
 
+    /// Store the CallRegistry address (admin only).
+    ///
+    /// This is used by `claim_payout` and `finalize_outcome` to make
+    /// cross-contract calls so that callers cannot spoof stake data.
+    pub fn set_registry(env: Env, registry: Address) {
+        require_admin(&env);
+        storage::set_registry(&env, registry);
+    }
+
     /// Set the maximum seconds an oracle report may lag behind `call_end_ts`
     /// (admin only). Reports submitted after this window are rejected with
     /// [`OutcomeError::SubmissionWindowExpired`]. Default: 86400 (24 h).
@@ -505,6 +544,10 @@ impl OutcomeManager {
 
     /// Claim a pro-rata payout for a winning staker.
     ///
+    /// Stake data is read on-chain from the CallRegistry via cross-contract
+    /// calls to `get_call` and `get_staker_stake`, preventing the caller from
+    /// spoofing pool totals.
+    ///
     /// **Payout formula** (with protocol fee):
     /// ```text
     /// fee        = total_losing_stake * fee_bps / 10000
@@ -518,19 +561,12 @@ impl OutcomeManager {
     /// call, preventing reentrancy attacks.
     ///
     /// # Panics
-    /// - `call not settled`       – quorum not yet reached
-    /// - `already claimed`        – staker already claimed
-    /// - `nothing to claim`       – staker_winning_stake ≤ 0
-    /// - `invalid total winning`  – total_winning_stake ≤ 0
-    pub fn claim_payout(
-        env: Env,
-        registry: Address,
-        call_id: u64,
-        staker: Address,
-        staker_winning_stake: i128,
-        total_winning_stake: i128,
-        total_losing_stake: i128,
-    ) {
+    /// - `contract paused`      – emergency pause is active
+    /// - `call not settled`     – quorum not yet reached
+    /// - `already claimed`      – staker already claimed
+    /// - `nothing to claim`     – staker has no stake on the winning outcome
+    /// - `invalid total winning` – winning pool is empty
+    pub fn claim_payout(env: Env, call_id: u64, staker: Address) {
         // 0. Check if contract is paused (emergency guard)
         if is_paused(&env) {
             soroban_sdk::panic_with_error!(&env, OutcomeError::ContractPaused);
@@ -548,22 +584,45 @@ impl OutcomeManager {
             soroban_sdk::panic_with_error!(&env, OutcomeError::AlreadyClaimed);
         }
 
-        // 4. Validate inputs
-        if staker_winning_stake <= 0 {
-            soroban_sdk::panic_with_error!(&env, OutcomeError::NothingToClaim);
-        }
+        // 4. Read registry address from instance storage
+        let registry = get_registry(&env);
+
+        // 5. Read winning outcome from the stored finalised outcome
+        let final_outcome: Outcome = env
+            .storage()
+            .instance()
+            .get(&InstanceKey::FinalOutcome(call_id))
+            .unwrap();
+        let winning_outcome = final_outcome.outcome;
+
+        // 6. Read the full Call from the registry
+        let call = registry_get_call(&env, &registry, call_id);
+
+        // 7. Determine total winning and losing stakes from outcome_stakes
+        let total_winning_stake = call.outcome_stakes.get(winning_outcome).unwrap_or(0);
         if total_winning_stake <= 0 {
             soroban_sdk::panic_with_error!(&env, OutcomeError::InvalidWinningStake);
         }
 
-        // 5. Compute protocol fee from losing pool (only on first claim; fee is
-        //    proportional so each claimant effectively pays their share)
+        let mut total_losing_stake: i128 = 0;
+        for i in 1..=call.outcome_count {
+            if i != winning_outcome {
+                total_losing_stake = total_losing_stake
+                    .checked_add(call.outcome_stakes.get(i).unwrap_or(0))
+                    .unwrap_or_else(|| overflow(&env));
+            }
+        }
+
+        // 8. Read staker's stake on the winning outcome from the registry
+        let staker_winning_stake =
+            registry_get_staker_stake(&env, &registry, call_id, &staker, winning_outcome);
+        if staker_winning_stake <= 0 {
+            soroban_sdk::panic_with_error!(&env, OutcomeError::NothingToClaim);
+        }
+
+        // 9. Compute protocol fee from losing pool
         let (fee_bps, fee_collector) = get_fee_config(&env);
-
-        // Staker's proportional share of the total fee
         let total_fee = compute_total_fee(&env, total_losing_stake, fee_bps);
-
-        // 6. Net losing pool available to winners
         let net_losing = total_losing_stake
             .checked_sub(total_fee)
             .unwrap_or_else(|| overflow(&env));
@@ -576,16 +635,16 @@ impl OutcomeManager {
             net_losing,
         );
 
-        // 8. Mark as claimed BEFORE external calls (reentrancy guard)
+        // 10. Mark as claimed BEFORE external calls (reentrancy guard)
         env.storage().instance().set(&claimed_key, &true);
 
-        // 9. Transfer fee to fee_collector (if non-zero)
+        // 11. Transfer fee to fee_collector (if non-zero)
         if staker_fee_share > 0 {
             registry_release_escrow(&env, &registry, call_id, &fee_collector, staker_fee_share);
             emit_fee_collected(&env, call_id, staker_fee_share, &fee_collector);
         }
 
-        // 10. Release net payout to staker
+        // 12. Release net payout to staker
         registry_release_escrow(&env, &registry, call_id, &staker, payout);
 
         emit_payout_claimed(&env, call_id, &staker, payout);
@@ -688,8 +747,9 @@ impl OutcomeManager {
 
     /// Batch-settle payouts for multiple winning stakers in a single transaction.
     ///
-    /// Admin-only. Each staker in `stakers` is matched positionally with the
-    /// corresponding amount in `stakes`. Both vecs must be the same length.
+    /// Admin-only. Each staker's stake is read on-chain from the CallRegistry
+    /// via `get_staker_stake`, preventing any spoofing of pool totals or
+    /// individual amounts.
     ///
     /// Individual `PayoutClaimed` events are emitted for each staker.
     /// Already-claimed stakers cause the entire batch to panic — callers must
@@ -699,19 +759,10 @@ impl OutcomeManager {
     /// - `not admin`                 – caller is not the contract admin
     /// - `call not settled`          – quorum not yet reached for this call
     /// - `empty batch`               – stakers vec is empty
-    /// - `length mismatch`           – stakers and stakes vecs differ in length
-    /// - `invalid total winning`     – total_winning_stake ≤ 0
+    /// - `invalid total winning`     – winning pool is empty
     /// - `already claimed: <staker>` – a staker in the batch already claimed
     /// - `nothing to claim`          – a staker's stake amount is ≤ 0
-    pub fn batch_claim_payouts(
-        env: Env,
-        registry: Address,
-        call_id: u64,
-        stakers: Vec<Address>,
-        stakes: Vec<i128>,
-        total_winning_stake: i128,
-        total_losing_stake: i128,
-    ) {
+    pub fn batch_claim_payouts(env: Env, call_id: u64, stakers: Vec<Address>) {
         // 1. Admin only
         require_admin(&env);
 
@@ -723,34 +774,54 @@ impl OutcomeManager {
             soroban_sdk::panic_with_error!(&env, OutcomeError::EmptyBatch);
         }
 
-        // 4. Vecs must be same length
-        if stakers.len() != stakes.len() {
-            soroban_sdk::panic_with_error!(&env, OutcomeError::LengthMismatch);
-        }
+        // 4. Read registry address from instance storage
+        let registry = get_registry(&env);
 
-        // 5. Validate shared inputs once
+        // 5. Read winning outcome from the stored finalised outcome
+        let final_outcome: Outcome = env
+            .storage()
+            .instance()
+            .get(&InstanceKey::FinalOutcome(call_id))
+            .unwrap();
+        let winning_outcome = final_outcome.outcome;
+
+        // 6. Read the full Call from the registry
+        let call = registry_get_call(&env, &registry, call_id);
+
+        // 7. Determine total winning and losing stakes
+        let total_winning_stake = call.outcome_stakes.get(winning_outcome).unwrap_or(0);
         if total_winning_stake <= 0 {
             soroban_sdk::panic_with_error!(&env, OutcomeError::InvalidWinningStake);
         }
 
-        // 6. Load fee config once
+        let mut total_losing_stake: i128 = 0;
+        for i in 1..=call.outcome_count {
+            if i != winning_outcome {
+                total_losing_stake = total_losing_stake
+                    .checked_add(call.outcome_stakes.get(i).unwrap_or(0))
+                    .unwrap_or_else(|| overflow(&env));
+            }
+        }
+
+        // 8. Load fee config once
         let (fee_bps, fee_collector) = get_fee_config(&env);
 
         // Pre-compute shared fee values
         let total_fee = compute_total_fee(&env, total_losing_stake, fee_bps);
-
         let net_losing = total_losing_stake
             .checked_sub(total_fee)
             .unwrap_or_else(|| overflow(&env));
 
         emit_batch_payout_started(&env, call_id, stakers.len());
 
-        // 7. Process each staker
+        // 9. Process each staker
         let mut aggregated_fee_share = 0_i128;
         for i in 0..stakers.len() {
             let staker = stakers.get(i).unwrap();
-            let staker_winning_stake = stakes.get(i).unwrap();
 
+            // Read staker's stake on the winning outcome from the registry
+            let staker_winning_stake =
+                registry_get_staker_stake(&env, &registry, call_id, &staker, winning_outcome);
             if staker_winning_stake <= 0 {
                 soroban_sdk::panic_with_error!(&env, OutcomeError::NothingToClaim);
             }
